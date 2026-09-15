@@ -17,13 +17,24 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Configure Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/emulator" >> $GITHUB_PATH
 
       - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
+
+      - name: Find Android project ZIP
+        run: |
+          ls -lah
+          find . -maxdepth 2 -type f -name "*.zip"
 
       - name: Extract Android project
         run: |
@@ -33,9 +44,13 @@ jobs:
       - name: Find Gradle wrapper
         run: |
           GRADLEW=$(find android-project -name gradlew -type f | head -1)
+          if [ -z "$GRADLEW" ]; then
+            echo "gradlew not found"
+            exit 1
+          fi
           echo "GRADLEW=$GRADLEW" >> "$GITHUB_ENV"
 
-      - name: Build APK
+      - name: Build Debug APK
         run: |
           chmod +x "$GRADLEW"
           cd "$(dirname "$GRADLEW")"
